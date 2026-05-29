@@ -160,7 +160,7 @@ async function loadClientes() {
       <td>${c.nome || '-'}</td>
       <td>${c.email || '-'}</td>
       <td><span class="bge">${c.tipoEvento || '-'}</span></td>
-      <td>${c.dataEvento ? new Date(c.dataEvento).toLocaleDateString('pt-BR') : '-'}</td>
+      <td>${c.dataEvento ? new Date(c.dataEvento + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
       <td>${c.linkFotos ? '✅' : '❌'}</td>
       <td><button class="btn btn-sm" onclick="editarCliente('${c.id}')">Editar</button></td>
     </tr>`).join('') + `</tbody></table>`;
