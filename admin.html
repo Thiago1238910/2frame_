@@ -251,11 +251,25 @@ document.getElementById('btn-criar').addEventListener('click', async () => {
       role: 'cliente', criadoEm: new Date().toISOString()
     }, {merge: true});
 
+    // Adiciona ao Google Agenda se tiver data
+    if (data) {
+      try {
+        await fetch('https://script.google.com/macros/s/AKfycbyd3wNwXrKouOaLRIFVR3x4iNCGID7Ov-VP7bnkXvE1AL2qxAoArNtr4qPGtrPWnIIV/exec', {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({nome, email, tipo, data})
+        });
+      } catch(calErr) {
+        console.log('Agenda:', calErr);
+      }
+    }
+
     if (!m.style.display || m.style.display === 'none') {
       m.className = 'msg ok'; m.style.display = 'block';
     }
     if (!m.textContent.includes('atualizado')) {
-      m.textContent = 'Cliente ' + nome + ' cadastrado com sucesso!';
+      m.textContent = 'Cliente ' + nome + ' cadastrado com sucesso!' + (data ? ' 📅 Evento adicionado à agenda!' : '');
     }
 
     ['n-nome','n-email','n-senha','n-fotos','n-contrato','n-data'].forEach(id => document.getElementById(id).value = '');
