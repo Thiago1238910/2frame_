@@ -109,7 +109,7 @@
   .desc-img-placeholder .ph-icon { font-size: 36px; opacity: 0.4; }
 
   /* PACOTES */
-  .cards-wrap { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); }
+  .cards-wrap { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); max-width: 1100px; margin: 0 auto; }
   @media (max-width: 800px) {
     .cards-wrap { grid-template-columns: 1fr; }
     .pkg + .pkg { border-top: 1px solid var(--border); border-left: none !important; }
@@ -146,7 +146,7 @@
   .pkg-btn:hover { background: var(--escuro); color: var(--creme); }
 
   /* CTA WHATSAPP */
-  .cta-wa { background: var(--escuro); padding: 80px 24px; text-align: center; position: relative; overflow: hidden; }
+  .cta-wa { background: var(--escuro); padding: 80px 24px; text-align: center; position: relative; overflow: hidden; } .cta-wa-inner { max-width: 700px; margin: 0 auto; position: relative; }
   .cta-wa::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(184,150,122,0.09) 0%, transparent 70%); }
   .cta-wa-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5vw, 56px); font-weight: 300; color: var(--creme); line-height: 1.1; margin-bottom: 14px; position: relative; }
   .cta-wa-title em { font-style: italic; color: var(--tan-lt); }
@@ -155,7 +155,7 @@
   .cta-wa-btn:hover { background: var(--tan-lt); border-color: var(--tan-lt); }
 
   /* ORNAMENT */
-  .ornament { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 64px 24px 0; }
+  .ornament { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 64px 24px 0; max-width: 1100px; margin: 0 auto; }
   .orn-line { flex: 1; max-width: 100px; height: 1px; background: var(--border); }
   .orn-diamond { width: 5px; height: 5px; background: var(--tan); transform: rotate(45deg); }
 
@@ -187,6 +187,7 @@
 <li><a href="ensaios.html">Ensaios</a></li>
 <li><a href="eventos.html">Eventos</a></li>
 <li><a href="aniversarios.html">Aniversários</a></li>
+    <li><a href="portfolio.html" style="color:var(--muted);text-decoration:none;">Portfólio</a></li>
     <li><a href="contrato.html" style="">Contrato</a></li>
   </ul>
   <a href="https://wa.me/5599985311384?text=Olá!%20Quero%20saber%20mais%20sobre%20a%202frame%20Fotografia" class="nav-cta" target="_blank">Orçamento</a>
