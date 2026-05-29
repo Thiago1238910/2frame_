@@ -113,9 +113,10 @@ tr:hover td{background:#faf8f5}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {getAuth,signOut,onAuthStateChanged,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getAuth,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const app=initializeApp({
+
+const app = initializeApp({
   apiKey: "AIzaSyC3P8zgoq69qVoVYCQ19b4hc5OdDj28PMs",
   authDomain: "frame-d991e.firebaseapp.com",
   projectId: "frame-d991e",
@@ -123,89 +124,127 @@ const app=initializeApp({
   messagingSenderId: "211810779646",
   appId: "1:211810779646:web:2dd1f175b06b836a3040af"
 });
-const auth=getAuth(app),db=getFirestore(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.tc').forEach(x=>x.classList.remove('active'));
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tc').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
-    document.getElementById('tc-'+t.dataset.tab).classList.add('active');
+    document.getElementById('tc-' + t.dataset.tab).classList.add('active');
   });
 });
 
-onAuthStateChanged(auth,async(user)=>{
-  if(!user){window.location.href='login.html';return;}
-  const snap=await getDoc(doc(db,'clientes',user.uid));
-  if(!snap.exists()||snap.data().role!=='admin'){window.location.href='login.html';return;}
-  document.getElementById('loading').style.display='none';
-  document.getElementById('wrap').style.display='block';
+let adminUID = null;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  const snap = await getDoc(doc(db, 'clientes', user.uid));
+  if (!snap.exists() || snap.data().role !== 'admin') { window.location.href = 'login.html'; return; }
+  adminUID = user.uid;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('wrap').style.display = 'block';
   loadClientes();
 });
 
-async function loadClientes(){
-  const snap=await getDocs(collection(db,'clientes'));
-  const lista=document.getElementById('lista');
-  const arr=[];
-  snap.forEach(d=>{if(d.data().role!=='admin')arr.push({id:d.id,...d.data()});});
-  if(!arr.length){lista.innerHTML='<div class="empty">Nenhum cliente cadastrado.</div>';return;}
-  lista.innerHTML=`<table><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Data</th><th>Fotos</th><th></th></tr></thead><tbody>`+
-    arr.map(c=>`<tr><td>${c.nome||'-'}</td><td>${c.email||'-'}</td><td><span class="bge">${c.tipoEvento||'-'}</span></td><td>${c.dataEvento?new Date(c.dataEvento).toLocaleDateString('pt-BR'):'-'}</td><td>${c.linkFotos?'✅':'❌'}</td><td><button class="btn btn-sm" onclick="editarCliente('${c.id}')">Editar</button></td></tr>`).join('')+
-    `</tbody></table>`;
+async function loadClientes() {
+  const snap = await getDocs(collection(db, 'clientes'));
+  const lista = document.getElementById('lista');
+  const arr = [];
+  snap.forEach(d => { if (d.data().role !== 'admin') arr.push({id: d.id, ...d.data()}); });
+  if (!arr.length) { lista.innerHTML = '<div class="empty">Nenhum cliente cadastrado.</div>'; return; }
+  lista.innerHTML = `<table><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Data</th><th>Fotos</th><th></th></tr></thead><tbody>` +
+    arr.map(c => `<tr>
+      <td>${c.nome || '-'}</td>
+      <td>${c.email || '-'}</td>
+      <td><span class="bge">${c.tipoEvento || '-'}</span></td>
+      <td>${c.dataEvento ? new Date(c.dataEvento).toLocaleDateString('pt-BR') : '-'}</td>
+      <td>${c.linkFotos ? '✅' : '❌'}</td>
+      <td><button class="btn btn-sm" onclick="editarCliente('${c.id}')">Editar</button></td>
+    </tr>`).join('') + `</tbody></table>`;
 }
 
-window.editarCliente=async(uid)=>{
-  const snap=await getDoc(doc(db,'clientes',uid));
-  const d=snap.data();
-  document.getElementById('e-uid').value=uid;
-  document.getElementById('e-nome').value=d.nome||'';
-  document.getElementById('e-tipo').value=d.tipoEvento||'Casamento';
-  document.getElementById('e-data').value=d.dataEvento||'';
-  document.getElementById('e-fotos').value=d.linkFotos||'';
-  document.getElementById('e-contrato').value=d.linkContrato||'';
-  document.getElementById('modal').style.display='flex';
+window.editarCliente = async (uid) => {
+  const snap = await getDoc(doc(db, 'clientes', uid));
+  const d = snap.data();
+  document.getElementById('e-uid').value = uid;
+  document.getElementById('e-nome').value = d.nome || '';
+  document.getElementById('e-tipo').value = d.tipoEvento || 'Casamento';
+  document.getElementById('e-data').value = d.dataEvento || '';
+  document.getElementById('e-fotos').value = d.linkFotos || '';
+  document.getElementById('e-contrato').value = d.linkContrato || '';
+  document.getElementById('modal').style.display = 'flex';
 };
 
-document.getElementById('btn-salvar').addEventListener('click',async()=>{
-  const uid=document.getElementById('e-uid').value;
-  const m=document.getElementById('msg-e');
-  try{
-    await updateDoc(doc(db,'clientes',uid),{
-      nome:document.getElementById('e-nome').value,
-      tipoEvento:document.getElementById('e-tipo').value,
-      dataEvento:document.getElementById('e-data').value,
-      linkFotos:document.getElementById('e-fotos').value,
-      linkContrato:document.getElementById('e-contrato').value,
+document.getElementById('btn-salvar').addEventListener('click', async () => {
+  const uid = document.getElementById('e-uid').value;
+  const m = document.getElementById('msg-e');
+  try {
+    await updateDoc(doc(db, 'clientes', uid), {
+      nome: document.getElementById('e-nome').value,
+      tipoEvento: document.getElementById('e-tipo').value,
+      dataEvento: document.getElementById('e-data').value,
+      linkFotos: document.getElementById('e-fotos').value,
+      linkContrato: document.getElementById('e-contrato').value,
     });
-    m.className='msg ok';m.style.display='block';m.textContent='Salvo!';
+    m.className = 'msg ok'; m.style.display = 'block'; m.textContent = 'Salvo!';
     loadClientes();
-    setTimeout(()=>{document.getElementById('modal').style.display='none';},1200);
-  }catch(e){m.className='msg er';m.style.display='block';m.textContent='Erro: '+e.message;}
+    setTimeout(() => { document.getElementById('modal').style.display = 'none'; }, 1200);
+  } catch(e) { m.className = 'msg er'; m.style.display = 'block'; m.textContent = 'Erro: ' + e.message; }
 });
 
-document.getElementById('btn-criar').addEventListener('click',async()=>{
-  const nome=document.getElementById('n-nome').value.trim();
-  const email=document.getElementById('n-email').value.trim();
-  const senha=document.getElementById('n-senha').value;
-  const m=document.getElementById('msg-n');
-  if(!nome||!email||!senha){m.className='msg er';m.style.display='block';m.textContent='Preencha nome, e-mail e senha.';return;}
-  try{
-    const cred=await createUserWithEmailAndPassword(auth,email,senha);
-    await setDoc(doc(db,'clientes',cred.user.uid),{
-      nome,email,
-      tipoEvento:document.getElementById('n-tipo').value,
-      dataEvento:document.getElementById('n-data').value,
-      linkFotos:document.getElementById('n-fotos').value.trim(),
-      linkContrato:document.getElementById('n-contrato').value.trim(),
-      role:'cliente',criadoEm:new Date().toISOString()
+// CRIAR CLIENTE — usa segunda instância do Firebase para não deslogar o admin
+document.getElementById('btn-criar').addEventListener('click', async () => {
+  const nome = document.getElementById('n-nome').value.trim();
+  const email = document.getElementById('n-email').value.trim();
+  const senha = document.getElementById('n-senha').value;
+  const m = document.getElementById('msg-n');
+  if (!nome || !email || !senha) {
+    m.className = 'msg er'; m.style.display = 'block'; m.textContent = 'Preencha nome, e-mail e senha.'; return;
+  }
+  m.style.display = 'none';
+  document.getElementById('btn-criar').textContent = 'Cadastrando...';
+  document.getElementById('btn-criar').disabled = true;
+
+  try {
+    // Usa a API REST do Firebase para criar usuário sem deslogar o admin
+    const apiKey = "AIzaSyC3P8zgoq69qVoVYCQ19b4hc5OdDj28PMs";
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password: senha, returnSecureToken: true})
     });
-    m.className='msg ok';m.style.display='block';m.textContent='Cliente '+nome+' cadastrado!';
-    ['n-nome','n-email','n-senha','n-fotos','n-contrato','n-data'].forEach(id=>document.getElementById(id).value='');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    
+    const newUID = data.localId;
+    await setDoc(doc(db, 'clientes', newUID), {
+      nome, email,
+      tipoEvento: document.getElementById('n-tipo').value,
+      dataEvento: document.getElementById('n-data').value,
+      linkFotos: document.getElementById('n-fotos').value.trim(),
+      linkContrato: document.getElementById('n-contrato').value.trim(),
+      role: 'cliente',
+      criadoEm: new Date().toISOString()
+    });
+
+    m.className = 'msg ok'; m.style.display = 'block'; m.textContent = 'Cliente ' + nome + ' cadastrado com sucesso!';
+    ['n-nome','n-email','n-senha','n-fotos','n-contrato','n-data'].forEach(id => document.getElementById(id).value = '');
     loadClientes();
-  }catch(e){m.className='msg er';m.style.display='block';m.textContent='Erro: '+e.message;}
+  } catch(e) {
+    m.className = 'msg er'; m.style.display = 'block';
+    m.textContent = 'Erro: ' + (e.message === 'EMAIL_EXISTS' ? 'Este e-mail já está cadastrado.' : e.message);
+  } finally {
+    document.getElementById('btn-criar').textContent = 'Cadastrar Cliente';
+    document.getElementById('btn-criar').disabled = false;
+  }
 });
 
-document.getElementById('btn-out').addEventListener('click',async()=>{await signOut(auth);window.location.href='login.html';});
+document.getElementById('btn-out').addEventListener('click', async () => {
+  await signOut(auth); window.location.href = 'login.html';
+});
 </script>
 </body>
 </html>
