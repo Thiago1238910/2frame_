@@ -34,11 +34,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:0 40px;height:68px;d
 .hint{font-size:11px;color:var(--muted);margin-top:5px}
 .btn{padding:12px 28px;background:var(--escuro);color:var(--tan-lt);border:none;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:all .25s}
 .btn:hover{background:var(--tan);color:var(--escuro)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
 .btn-sm{padding:7px 16px;font-size:10px}
 .btn-sec{background:var(--muted)}
-.msg{padding:12px 16px;font-size:13px;margin-bottom:16px;display:none}
+.msg{padding:12px 16px;font-size:13px;margin-bottom:16px;display:none;border-radius:2px}
 .msg.ok{background:#efe;border:1px solid #cdc;color:#060}
 .msg.er{background:#fee;border:1px solid #fcc;color:#c00}
+.msg.warn{background:#fff8e1;border:1px solid #ffe082;color:#7a5c00}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);padding:10px 14px;border-bottom:2px solid var(--border)}
 td{padding:14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--escuro)}
@@ -113,9 +115,10 @@ tr:hover td{background:#faf8f5}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {getAuth,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {getAuth, signOut, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+const API_KEY = "AIzaSyC3P8zgoq69qVoVYCQ19b4hc5OdDj28PMs";
 const app = initializeApp({
   apiKey: "AIzaSyC3P8zgoq69qVoVYCQ19b4hc5OdDj28PMs",
   authDomain: "frame-d991e.firebaseapp.com",
@@ -137,13 +140,10 @@ document.querySelectorAll('.tab').forEach(t => {
   });
 });
 
-let adminUID = null;
-
 onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = 'login.html'; return; }
   const snap = await getDoc(doc(db, 'clientes', user.uid));
   if (!snap.exists() || snap.data().role !== 'admin') { window.location.href = 'login.html'; return; }
-  adminUID = user.uid;
   document.getElementById('loading').style.display = 'none';
   document.getElementById('wrap').style.display = 'block';
   loadClientes();
@@ -189,56 +189,84 @@ document.getElementById('btn-salvar').addEventListener('click', async () => {
       linkFotos: document.getElementById('e-fotos').value,
       linkContrato: document.getElementById('e-contrato').value,
     });
-    m.className = 'msg ok'; m.style.display = 'block'; m.textContent = 'Salvo!';
+    m.className = 'msg ok'; m.style.display = 'block'; m.textContent = 'Salvo com sucesso!';
     loadClientes();
     setTimeout(() => { document.getElementById('modal').style.display = 'none'; }, 1200);
   } catch(e) { m.className = 'msg er'; m.style.display = 'block'; m.textContent = 'Erro: ' + e.message; }
 });
 
-// CRIAR CLIENTE — usa segunda instância do Firebase para não deslogar o admin
+// CRIAR CLIENTE — usa REST API para não deslogar o admin
 document.getElementById('btn-criar').addEventListener('click', async () => {
   const nome = document.getElementById('n-nome').value.trim();
   const email = document.getElementById('n-email').value.trim();
   const senha = document.getElementById('n-senha').value;
+  const tipo = document.getElementById('n-tipo').value;
+  const data = document.getElementById('n-data').value;
+  const fotos = document.getElementById('n-fotos').value.trim();
+  const contrato = document.getElementById('n-contrato').value.trim();
   const m = document.getElementById('msg-n');
+  const btn = document.getElementById('btn-criar');
+
   if (!nome || !email || !senha) {
     m.className = 'msg er'; m.style.display = 'block'; m.textContent = 'Preencha nome, e-mail e senha.'; return;
   }
+
   m.style.display = 'none';
-  document.getElementById('btn-criar').textContent = 'Cadastrando...';
-  document.getElementById('btn-criar').disabled = true;
+  btn.textContent = 'Cadastrando...';
+  btn.disabled = true;
 
   try {
-    // Usa a API REST do Firebase para criar usuário sem deslogar o admin
-    const apiKey = "AIzaSyC3P8zgoq69qVoVYCQ19b4hc5OdDj28PMs";
-    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
+    // Tenta criar o usuário via REST API (não desloga o admin)
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email, password: senha, returnSecureToken: true})
+      body: JSON.stringify({email, password: senha, returnSecureToken: false})
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    
-    const newUID = data.localId;
-    await setDoc(doc(db, 'clientes', newUID), {
-      nome, email,
-      tipoEvento: document.getElementById('n-tipo').value,
-      dataEvento: document.getElementById('n-data').value,
-      linkFotos: document.getElementById('n-fotos').value.trim(),
-      linkContrato: document.getElementById('n-contrato').value.trim(),
-      role: 'cliente',
-      criadoEm: new Date().toISOString()
-    });
+    const resultado = await res.json();
 
-    m.className = 'msg ok'; m.style.display = 'block'; m.textContent = 'Cliente ' + nome + ' cadastrado com sucesso!';
+    let uid = resultado.localId;
+
+    // Se email já existe, busca o UID no Firestore pelo email
+    if (!uid && resultado.error) {
+      if (resultado.error.message === 'EMAIL_EXISTS') {
+        // Busca no Firestore pelo email
+        const q = query(collection(db, 'clientes'), where('email', '==', email));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          uid = snap.docs[0].id;
+          m.className = 'msg warn'; m.style.display = 'block';
+          m.textContent = 'E-mail já existia — dados atualizados no sistema.';
+        } else {
+          throw new Error('E-mail já cadastrado no sistema de autenticação mas não encontrado no banco. Contate o suporte.');
+        }
+      } else {
+        throw new Error(resultado.error.message);
+      }
+    }
+
+    // Salva ou atualiza no Firestore
+    await setDoc(doc(db, 'clientes', uid), {
+      nome, email, tipoEvento: tipo, dataEvento: data,
+      linkFotos: fotos, linkContrato: contrato,
+      role: 'cliente', criadoEm: new Date().toISOString()
+    }, {merge: true});
+
+    if (!m.style.display || m.style.display === 'none') {
+      m.className = 'msg ok'; m.style.display = 'block';
+    }
+    if (!m.textContent.includes('atualizado')) {
+      m.textContent = 'Cliente ' + nome + ' cadastrado com sucesso!';
+    }
+
     ['n-nome','n-email','n-senha','n-fotos','n-contrato','n-data'].forEach(id => document.getElementById(id).value = '');
     loadClientes();
+
   } catch(e) {
     m.className = 'msg er'; m.style.display = 'block';
-    m.textContent = 'Erro: ' + (e.message === 'EMAIL_EXISTS' ? 'Este e-mail já está cadastrado.' : e.message);
+    m.textContent = 'Erro: ' + e.message;
   } finally {
-    document.getElementById('btn-criar').textContent = 'Cadastrar Cliente';
-    document.getElementById('btn-criar').disabled = false;
+    btn.textContent = 'Cadastrar Cliente';
+    btn.disabled = false;
   }
 });
 
