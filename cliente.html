@@ -68,7 +68,7 @@ onAuthStateChanged(auth,async(user)=>{
   document.getElementById('nav-user').textContent=d.nome||user.email;
   document.getElementById('c-nome').textContent=d.nome||'';
   if(d.dataEvento){
-    const dt=new Date(d.dataEvento);
+    const dt=new Date(d.dataEvento + 'T00:00:00');
     document.getElementById('ev-info').textContent='📅 '+(d.tipoEvento||'Evento')+' · '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   }
   const cards=document.getElementById('cards');
